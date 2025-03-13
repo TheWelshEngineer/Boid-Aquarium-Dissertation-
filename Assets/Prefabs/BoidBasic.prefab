@@ -160,13 +160,16 @@ MonoBehaviour:
   forward: {x: 0, y: 0, z: 0}
   minimumSpeed: 1
   maximumSpeed: 3
-  cohesionStrength: 0.75
-  alignmentStrength: 0.5
-  separationStrength: 1
-  separationRadius: 1
-  visionRadius: 5
+  cohesionStrength: 1
+  alignmentStrength: 1.25
+  separationStrength: 1.25
+  separationRadius: 2.5
+  visionRadius: 7.5
   followTarget: {fileID: 0}
   followOffset: {x: 0, y: 0, z: 0}
+  clampX: 15
+  clampY: 15
+  clampZ: 15
 --- !u!33 &4046545904135811586
 MeshFilter:
   m_ObjectHideFlags: 0

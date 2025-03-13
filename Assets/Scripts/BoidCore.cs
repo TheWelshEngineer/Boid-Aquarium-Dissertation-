@@ -28,17 +28,22 @@ public class BoidCore : MonoBehaviour
 
     //Boid rule controls
     public float cohesionStrength = 1.0f;
-    public float alignmentStrength = 0.5f;
-    public float separationStrength = 2.5f;
+    public float alignmentStrength = 1.25f;
+    public float separationStrength = 1.25f;
     public float separationRadius = 2.5f;
 
     //Vision controls
-    public float visionRadius = 5.0f;
+    public float visionRadius = 7.5f;
     private List<GameObject> visibleFriends = new List<GameObject>();
 
     //Target to follow
     public GameObject followTarget;
     public Vector3 followOffset;
+
+    //Bounding box values
+    public float clampX = 15.0f;
+    public float clampY = 15.0f;
+    public float clampZ = 15.0f;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -48,7 +53,9 @@ public class BoidCore : MonoBehaviour
         this.basicBoids = GameObject.FindGameObjectsWithTag("BoidBasic");
 
         float startingSpeed = ((minimumSpeed+maximumSpeed)/2);
+        transform.forward = Random.rotation.eulerAngles;
         velocity = this.gameObject.transform.forward*startingSpeed;
+        
     }
 
     // Update is called once per frame
@@ -62,7 +69,7 @@ public class BoidCore : MonoBehaviour
             
 
             Vector3 distanceToTarget = (followTarget.transform.position - transform.position);
-            acceleration = steerTowardsPoint(distanceToTarget);
+            acceleration = forceTowardsPoint(distanceToTarget);
 
             //Temporary rotation to face target
             var rotationStep = ((minimumSpeed+maximumSpeed)/2);
@@ -78,23 +85,25 @@ public class BoidCore : MonoBehaviour
             //Cohesion rule - Steer towards the centre of nearby boids of the same species
             Vector3 centreOfFriends = centreOfKnownFlock();
             Vector3 distanceToCentreOfFriends = (centreOfFriends - transform.position);
-            var cohesionForce = steerTowardsPoint(distanceToCentreOfFriends);
+            var cohesionForce = forceTowardsPoint(distanceToCentreOfFriends);
             acceleration += cohesionForce*cohesionStrength;
 
             //Alignment rule - Steer towards the average heading of nearby boids of the same species
             Vector3 alignmentOfFriends = alignmentOfKnownFlock();
-            var alignmentForce = steerTowardsPoint(alignmentOfFriends);
+            var alignmentForce = forceTowardsPoint(alignmentOfFriends);
             acceleration += alignmentForce*alignmentStrength;
 
             //Separation rule - Avoid collisions with other boids and the environment
+            var separationForce = Vector3.zero;
             foreach(GameObject boid in visibleFriends){
                 if(Vector3.Distance(transform.position, boid.transform.position) <= separationRadius){
                     Debug.Log("Too close!");
-                    var separationForce = -steerTowardsPoint(boid.transform.position);
-                    acceleration += separationForce*separationStrength;
+                    separationForce += forceTowardsPoint(boid.transform.position - transform.position);
+                    
                 }
             
             }
+            acceleration -= separationForce*separationStrength;
 
         }
         
@@ -109,12 +118,48 @@ public class BoidCore : MonoBehaviour
         this.gameObject.transform.position += velocity * Time.deltaTime;
         this.gameObject.transform.forward = directionOfMovement;
 
-        
+        //Clamp position to within bounding box
+        //Clamp positive X
+        if(transform.position.x > clampX){
+            var keepY = transform.position.y;
+            var keepZ = transform.position.z;
+            transform.position = new Vector3(-clampX, keepY, keepZ);
+        }
+        //Clamp negative X
+        if(transform.position.x < -clampX){
+            var keepY = transform.position.y;
+            var keepZ = transform.position.z;
+            transform.position = new Vector3(clampX, keepY, keepZ);
+        }
+        //Clamp positive Y
+        if(transform.position.y > clampY){
+            var keepX = transform.position.x;
+            var keepZ = transform.position.z;
+            transform.position = new Vector3(keepX, -clampY, keepZ);
+        }
+        //Clamp negative Y
+        if(transform.position.y < -clampY){
+            var keepX = transform.position.x;
+            var keepZ = transform.position.z;
+            transform.position = new Vector3(keepX, clampY, keepZ);
+        }
+        //Clamp positive Z
+        if(transform.position.z > clampZ){
+            var keepX = transform.position.x;
+            var keepY = transform.position.y;
+            transform.position = new Vector3(keepX, keepY, -clampZ);
+        }
+        //Clamp negative Z
+        if(transform.position.z < -clampZ){
+            var keepX = transform.position.x;
+            var keepY = transform.position.y;
+            transform.position = new Vector3(keepX, keepY, clampZ);
+        }
     }
 
 
 
-    Vector3 steerTowardsPoint (Vector3 vector) {
+    Vector3 forceTowardsPoint (Vector3 vector) {
         Vector3 v = vector.normalized * maximumSpeed - velocity;
         return Vector3.ClampMagnitude (v, maximumSpeed);
     }
