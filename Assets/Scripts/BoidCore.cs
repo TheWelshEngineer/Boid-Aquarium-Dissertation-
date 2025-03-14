@@ -7,6 +7,7 @@ public class BoidCore : MonoBehaviour
 {
     //Boid Manager's list of Basic Boids
     private GameObject[] basicBoids;
+    private GameObject[] obstacles;
 
     //STATE VARIABLES
     //The following represent the state of the boid within the world
@@ -36,6 +37,8 @@ public class BoidCore : MonoBehaviour
     public float visionRadius = 7.5f;
     private List<GameObject> visibleFriends = new List<GameObject>();
 
+    private List<GameObject> visibleObstacles = new List<GameObject>();
+
     //Target to follow
     public GameObject followTarget;
     public Vector3 followOffset;
@@ -51,6 +54,7 @@ public class BoidCore : MonoBehaviour
         this.followTarget = GameObject.Find("Target");
         //this.basicBoids = GameObject.Find("BoidManager").GetComponent<BoidManager>().basicBoids;
         this.basicBoids = GameObject.FindGameObjectsWithTag("BoidBasic");
+        this.obstacles = GameObject.FindGameObjectsWithTag("Obstacle");
 
         float startingSpeed = ((minimumSpeed+maximumSpeed)/2);
         transform.forward = Random.rotation.eulerAngles;
@@ -78,6 +82,8 @@ public class BoidCore : MonoBehaviour
             
         }
 
+        //Update visible obstacles
+        updateVisibleObstacles();
         //Update visible flockmates
         updateVisibleFriends();
         //If at least one potential flockmate is identified, begin applying flocking rules
@@ -102,6 +108,17 @@ public class BoidCore : MonoBehaviour
                     
                 }
             
+            }
+            //If at least one obstacle is identified, begin avoiding obstacles
+            if(visibleObstacles.Count > 0){
+                foreach(GameObject obstacle in visibleObstacles){
+                    if(Vector3.Distance(transform.position, obstacle.transform.position) <= separationRadius*3){
+                        Debug.Log("Too close!");
+                        separationForce += forceTowardsPoint(obstacle.transform.position - transform.position);
+                    
+                    }
+            
+                }
             }
             acceleration -= separationForce*separationStrength;
 
@@ -178,6 +195,26 @@ public class BoidCore : MonoBehaviour
                         if(visibleFriends.Contains(boid)){
                             visibleFriends.Remove(boid);
                         }
+                    }
+                }
+            
+            }
+        }
+        
+    }
+
+    void updateVisibleObstacles(){
+        if(obstacles == null || obstacles.Length == 0){
+            Debug.Log("obstacles is null or empty!!");
+        }else{
+            foreach(GameObject obstacle in obstacles){
+                if(Vector3.Distance(obstacle.transform.position, this.gameObject.transform.position) <= visionRadius){
+                    if(!visibleObstacles.Contains(obstacle)){
+                        visibleObstacles.Add(obstacle);
+                    }
+                }else{
+                    if(visibleObstacles.Contains(obstacle)){
+                        visibleObstacles.Remove(obstacle);
                     }
                 }
             
