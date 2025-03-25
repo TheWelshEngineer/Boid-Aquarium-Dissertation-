@@ -14,7 +14,7 @@ public class SeaweedManager : MonoBehaviour
     private GameObject[] seaweedInTank;
     private GameObject[] obstacles;
     private int optimalSeaweedCount = 13;
-    private float spawnObstructionRadius = 2.5f;
+    private float spawnObstructionRadius = 5.0f;
 
     private int seaweedSpawnDelay = 180;
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -30,7 +30,7 @@ public class SeaweedManager : MonoBehaviour
         seaweedSpawnDelay -= 1;
         this.seaweedInTank = GameObject.FindGameObjectsWithTag("Seaweed");
         if(seaweedInTank.Length < optimalSeaweedCount && seaweedSpawnDelay <= 0){
-            Vector3 spawnPoint = findUnobstructedPoint(-15, 15);
+            Vector3 spawnPoint = findUnobstructedPoint(-13, 13);
             seaweedToSpawn = Instantiate(seaweed, spawnPoint, Quaternion.Euler(new Vector3(0, UnityEngine.Random.Range(0, 360), 0)));
             seaweedToSpawn.name = "Seaweed (" + random.Next().ToString()+")";
             Debug.Log("Spawned new seaweed!");

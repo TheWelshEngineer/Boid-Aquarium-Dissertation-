@@ -133,6 +133,7 @@ public class BoidCore : MonoBehaviour
         updateVisibleSeaweed();
         //Update visible flockmates
         updateVisibleFriends();
+        var separationForce = Vector3.zero;
         //If at least one potential flockmate is identified, begin applying flocking rules
         if(visibleFriends.Count > 0){
             //Cohesion rule - Steer towards the centre of nearby boids of the same species
@@ -140,8 +141,14 @@ public class BoidCore : MonoBehaviour
             Vector3 distanceToCentreOfFriends = (centreOfFriends - transform.position);
             var cohesionForce = forceTowardsPoint(distanceToCentreOfFriends);
             //Debug.Log(cohesionForce);
-            acceleration += cohesionForce*cohesionStrength;
-            cohesionVector = cohesionForce*cohesionStrength;
+            if(visibleFriends.Count <= 4){
+                acceleration += cohesionForce*cohesionStrength;
+                cohesionVector = cohesionForce*cohesionStrength;
+            }else{
+                acceleration -= cohesionForce*cohesionStrength;
+                cohesionVector = cohesionForce*cohesionStrength;
+            }
+            
 
             //Alignment rule - Steer towards the average heading of nearby boids of the same species
             Vector3 alignmentOfFriends = alignmentOfKnownFlock();
@@ -149,86 +156,112 @@ public class BoidCore : MonoBehaviour
             acceleration += alignmentForce*alignmentStrength;
             alignmentVector = alignmentForce*alignmentStrength;
 
-            //If hungry, hunt for seaweed
-            appetite -= 1;
-            //Debug.Log(visibleSeaweed.Count);
-            if(visibleSeaweed.Count > 0 && appetite <= 0 && targetedFood == null){
-                foreach(GameObject weed in visibleSeaweed){
-                    if(weed != null && !weed.CompareTag("Claimed")){
-                        weed.tag = "Claimed";
-                        targetedFood = weed;
-                        Debug.Log("I found something to eat!");
-                        foreach(GameObject boid in basicBoids){
-                            if(boid != null){
-                                boid.GetComponent<BoidCore>().updateVisibleSeaweed();
-                            }
-                            
-                        }
-                        break;
-                    }
-                }
-            }
-            var foodForce = Vector3.zero;
-            if(targetedFood != null){
-                foodForce = forceTowardsPoint(targetedFood.transform.position - transform.position);
-                //Debug.Log(foodForce);
-                //Debug.Log(foodForce*foodStrength);
-                //acceleration += foodForce*foodStrength;
-                acceleration = foodForce*foodStrength;
-                cohesionVector = Vector3.zero;
-                alignmentVector = Vector3.zero;
-                foodVector = foodForce*foodStrength;
-                //Debug.Log("I'm moving towards food!");
-                if(Vector3.Distance(transform.position, targetedFood.transform.position) <= (eatingRadius)){
-                    appetite = random.Next(appetiteMin, appetiteMax);
-                    reproductionCount -= 1;
-                    Destroy(targetedFood);
-                    updateVisibleSeaweed();
-                    targetedFood = null;
-                    Debug.Log("I ate the food!");
-                }
-               
-            }
-
-            if(reproductionCount <= 0){
-                reproductionCount = 2;
-                childToSpawn = Instantiate(childPrefab, transform.position, Quaternion.Euler(new Vector3(UnityEngine.Random.Range(0, 360), UnityEngine.Random.Range(0, 360), 0)));
-                childToSpawn.name = "BoidBasic (" + random.Next().ToString()+")";
-                Debug.Log("Spawned new child!");
-            }
-
-            
-
-            
-
-            //Separation rule - Avoid collisions with other boids and the environment
-            var separationForce = Vector3.zero;
+            //Separation rule - Avoid collisions with other boids and the environment       
             foreach(GameObject boid in visibleFriends){
                 if(boid != null){
                     if(Vector3.Distance(transform.position, boid.transform.position) <= separationRadius){
-                        //Debug.Log("Too close!");
-                        separationForce += forceTowardsPoint(boid.transform.position - transform.position);
-                    
+                        Debug.Log(Vector3.Distance(transform.position, boid.transform.position));
+                        separationForce += forceTowardsPoint(boid.transform.position - transform.position);                   
                     }
                 }
-                
-            
             }
-            
-            //If at least one obstacle is identified, begin avoiding obstacles
-            if(visibleObstacles.Any()){
-                foreach(GameObject obstacle in visibleObstacles){
-                    if(Vector3.Distance(transform.position, obstacle.transform.position) <= separationRadius*3){
-                        Debug.Log("Too close!");
-                        separationForce += forceTowardsPoint(obstacle.transform.position - transform.position);
-                    }
-            
-                }
-            }
-            
             acceleration -= separationForce*separationStrength;
-            separationVector = -(separationForce*separationStrength);
+        }else{
+            acceleration += forceTowardsPoint(Vector3.zero - transform.position);
+        }
 
+        
+
+        //If hungry, hunt for seaweed
+        appetite -= 1;
+        //Debug.Log(visibleSeaweed.Count);
+        if(visibleSeaweed.Count > 0 && appetite <= 0 && targetedFood == null){
+            foreach(GameObject weed in visibleSeaweed){
+                if(weed != null && !weed.CompareTag("Claimed")){
+                    weed.tag = "Claimed";
+                    targetedFood = weed;
+                    Debug.Log("I found something to eat!");
+                    foreach(GameObject boid in basicBoids){
+                        if(boid != null){
+                            boid.GetComponent<BoidCore>().updateVisibleSeaweed();
+                        }
+                            
+                    }
+                    break;
+                }
+            }
+        }
+        var foodForce = Vector3.zero;
+        if(targetedFood != null){
+            foodForce = forceTowardsPoint(targetedFood.transform.position - transform.position);
+            //Debug.Log(foodForce);
+            //Debug.Log(foodForce*foodStrength);
+            //acceleration += foodForce*foodStrength;
+            acceleration = foodForce*foodStrength;
+            cohesionVector = Vector3.zero;
+            alignmentVector = Vector3.zero;
+            foodVector = foodForce*foodStrength;
+            //Debug.Log("I'm moving towards food!");
+            if(Vector3.Distance(transform.position, targetedFood.transform.position) <= (eatingRadius)){
+                appetite = random.Next(appetiteMin, appetiteMax);
+                reproductionCount -= 1;
+                Destroy(targetedFood);
+                updateVisibleSeaweed();
+                targetedFood = null;
+                Debug.Log("I ate the food!");
+            }
+               
+        }
+
+        //If at least one obstacle is identified, begin avoiding obstacles
+        if(obstacles.Length > 0){
+            separationForce = Vector3.zero;
+            foreach(GameObject obstacle in obstacles){
+                if(Vector3.Distance(transform.position, obstacle.transform.position) <= separationRadius*2){
+                    Debug.Log("Too close!");
+                    separationForce += forceTowardsPoint(obstacle.transform.position - transform.position);
+                }
+            
+            }
+        }
+            
+        acceleration -= separationForce*separationStrength;
+        separationVector = -(separationForce*separationStrength);
+
+        if(reproductionCount <= 0){
+            reproductionCount = 2;
+            var spawnPoint = findUnobstructedPoint((int)-clampX, (int)clampX);
+            childToSpawn = Instantiate(childPrefab, spawnPoint, Quaternion.Euler(new Vector3(UnityEngine.Random.Range(0, 360), UnityEngine.Random.Range(0, 360), 0)));
+            childToSpawn.name = "BoidBasic (" + random.Next().ToString()+")";
+            Debug.Log("Spawned new child!");
+        }
+
+        //Clamp position to within bounding box
+        //Clamp X
+        if(transform.position.x + acceleration.x > clampX || transform.position.x + acceleration.x < -clampX){
+            var accelX = -acceleration.x*2;
+            var accelY = acceleration.y;
+            var accelZ = acceleration.z;
+            acceleration = new Vector3(accelX, accelY, accelZ);
+        }
+        //Clamp Y
+        if(transform.position.y + acceleration.y > clampY || transform.position.y + acceleration.y < -clampY){
+            var accelX = acceleration.x;
+            var accelY = -acceleration.y*2;
+            var accelZ = acceleration.z;
+            acceleration = new Vector3(accelX, accelY, accelZ);
+        }
+        //Clamp Z
+        if(transform.position.z + acceleration.z > clampZ || transform.position.z + acceleration.z < -clampZ){
+            var accelX = acceleration.x;
+            var accelY = acceleration.y;
+            var accelZ = -acceleration.z*2;
+            acceleration = new Vector3(accelX, accelY, accelZ);
+        }
+        //Clamp position in emergencies
+        if(Vector3.Distance(transform.position, Vector3.zero) > 3*((clampX + clampY + clampZ)/3)){
+            Debug.Log("Returning escapee boid to tank!");
+            transform.position = Vector3.zero;
         }
         
         //Speed and direction storage
@@ -242,43 +275,9 @@ public class BoidCore : MonoBehaviour
         this.gameObject.transform.position += velocity * Time.deltaTime;
         this.gameObject.transform.forward = directionOfMovement;
 
-        //Clamp position to within bounding box
-        //Clamp positive X
-        if(transform.position.x > clampX){
-            var keepY = transform.position.y;
-            var keepZ = transform.position.z;
-            transform.position = new Vector3(-clampX, keepY, keepZ);
-        }
-        //Clamp negative X
-        if(transform.position.x < -clampX){
-            var keepY = transform.position.y;
-            var keepZ = transform.position.z;
-            transform.position = new Vector3(clampX, keepY, keepZ);
-        }
-        //Clamp positive Y
-        if(transform.position.y > clampY){
-            var keepX = transform.position.x;
-            var keepZ = transform.position.z;
-            transform.position = new Vector3(keepX, -clampY, keepZ);
-        }
-        //Clamp negative Y
-        if(transform.position.y < -clampY){
-            var keepX = transform.position.x;
-            var keepZ = transform.position.z;
-            transform.position = new Vector3(keepX, clampY, keepZ);
-        }
-        //Clamp positive Z
-        if(transform.position.z > clampZ){
-            var keepX = transform.position.x;
-            var keepY = transform.position.y;
-            transform.position = new Vector3(keepX, keepY, -clampZ);
-        }
-        //Clamp negative Z
-        if(transform.position.z < -clampZ){
-            var keepX = transform.position.x;
-            var keepY = transform.position.y;
-            transform.position = new Vector3(keepX, keepY, clampZ);
-        }
+        
+        
+        
 
         age -= 1;
         if(age <= 0 && random.Next(1, 100) == 1){
@@ -327,12 +326,13 @@ public class BoidCore : MonoBehaviour
     void updateVisibleObstacles(){
         this.obstacles = GameObject.FindGameObjectsWithTag("Obstacle");
         if(obstacles == null || obstacles.Length == 0){
-            Debug.Log("obstacles is null or empty!!");
+            //Debug.Log("obstacles is null or empty!!");
         }else{
+            //Debug.Log("Obstacles in scene: "+obstacles.Length);
             foreach(GameObject obstacle in obstacles){
                 if(Vector3.Distance(obstacle.transform.position, this.gameObject.transform.position) <= visionRadius){
                     if(!visibleObstacles.Contains(obstacle)){
-                        Debug.Log("I saw an obstacle!");
+                        //Debug.Log("I saw an obstacle!");
                         visibleObstacles.Add(obstacle);
                     }
                 }else{
