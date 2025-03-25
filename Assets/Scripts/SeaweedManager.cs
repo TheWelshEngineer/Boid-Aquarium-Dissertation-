@@ -7,7 +7,7 @@ using System.Linq;
 
 public class SeaweedManager : MonoBehaviour
 {
-    System.Random random = new System.Random(12345);
+    public System.Random random = new System.Random(12345);
     public GameObject seaweed;
 
     private GameObject seaweedToSpawn;
