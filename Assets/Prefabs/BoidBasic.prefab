@@ -377,14 +377,21 @@ MonoBehaviour:
   position: {x: 0, y: 0, z: 0}
   forward: {x: 0, y: 0, z: 0}
   minimumSpeed: 1
-  maximumSpeed: 3
+  maximumSpeed: 5
   cohesionStrength: 1
+  cohesionVector: {x: 0, y: 0, z: 0}
   alignmentStrength: 1.25
+  alignmentVector: {x: 0, y: 0, z: 0}
   separationStrength: 1.25
+  separationVector: {x: 0, y: 0, z: 0}
   separationRadius: 2.5
+  foodStrength: 5
+  foodVector: {x: 0, y: 0, z: 0}
   visionRadius: 7.5
   followTarget: {fileID: 0}
   followOffset: {x: 0, y: 0, z: 0}
+  eatingRadius: 1.5
+  targetedFood: {fileID: 0}
   clampX: 15
   clampY: 15
   clampZ: 15

@@ -3,11 +3,14 @@ using Unity.VisualScripting;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using System;
+using System.Linq;
 
 public class SeaweedManager : MonoBehaviour
 {
     System.Random random = new System.Random(12345);
     public GameObject seaweed;
+
+    private GameObject seaweedToSpawn;
     private GameObject[] seaweedInTank;
     private GameObject[] obstacles;
     private int optimalSeaweedCount = 13;
@@ -28,7 +31,8 @@ public class SeaweedManager : MonoBehaviour
         this.seaweedInTank = GameObject.FindGameObjectsWithTag("Seaweed");
         if(seaweedInTank.Length < optimalSeaweedCount && seaweedSpawnDelay <= 0){
             Vector3 spawnPoint = findUnobstructedPoint(-15, 15);
-            Instantiate(seaweed, spawnPoint, Quaternion.Euler(new Vector3(0, UnityEngine.Random.Range(0, 360), 0)));
+            seaweedToSpawn = Instantiate(seaweed, spawnPoint, Quaternion.Euler(new Vector3(0, UnityEngine.Random.Range(0, 360), 0)));
+            seaweedToSpawn.name = "Seaweed (" + random.Next().ToString()+")";
             Debug.Log("Spawned new seaweed!");
         }
         if(seaweedSpawnDelay <= 0){
@@ -41,14 +45,22 @@ public class SeaweedManager : MonoBehaviour
         bool acceptablePoint = false;
         while(!acceptablePoint){
             Vector3 test = randomVector(lowerBound, upperBound);
-            foreach(GameObject obstacle in obstacles){
-                if(Vector3.Distance(test, obstacle.transform.position) > spawnObstructionRadius){
-                    acceptablePoint = true;
-                    vector = test;
-                    Debug.Log("Found seaweed point!");
-                    break;
+            if(obstacles.Any()){
+                foreach(GameObject obstacle in obstacles){
+                    if(Vector3.Distance(test, obstacle.transform.position) > spawnObstructionRadius){
+                        acceptablePoint = true;
+                        vector = test;
+                        Debug.Log("Found seaweed point!");
+                        break;
+                    }
                 }
+            }else{
+                acceptablePoint = true;
+                vector = test;
+                Debug.Log("Found seaweed point!");
+                break;
             }
+            
         }
         return vector;
     }
