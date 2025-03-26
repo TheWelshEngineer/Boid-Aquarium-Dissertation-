@@ -5,11 +5,11 @@ using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using System;
 
-public class BoidCore : MonoBehaviour
+public class BoidBad : MonoBehaviour
 {
 
     System.Random random;
-    private GameObject[] basicBoids;
+    private GameObject[] badBoids;
     private GameObject[] obstacles;
 
     //STATE VARIABLES
@@ -27,14 +27,10 @@ public class BoidCore : MonoBehaviour
     private Vector3 acceleration;
 
     //Speed controls
-    public float minimumSpeed = 1.0f;
-    public float maximumSpeed = 5.0f;
+    public float minimumSpeed = 2.0f;
+    public float maximumSpeed = 5.5f;
 
     //Boid rule controls
-    public float cohesionStrength = 1.0f;
-    public Vector3 cohesionVector = Vector3.zero;
-    public float alignmentStrength = 1.25f;
-    public Vector3 alignmentVector = Vector3.zero;
     public float separationStrength = 1.25f;
     public Vector3 separationVector = Vector3.zero;
     public float separationRadius = 2.5f;
@@ -52,7 +48,7 @@ public class BoidCore : MonoBehaviour
     public Vector3 followOffset;
 
     //Hunger controls
-    private GameObject[] seaweed;
+    private GameObject[] prey;
     private List<GameObject> visibleSeaweed = new List<GameObject>();
 
     public float eatingRadius = 1.5f;
@@ -75,13 +71,6 @@ public class BoidCore : MonoBehaviour
     public GameObject skeletonPrefab;
     private GameObject skeletonToSpawn;
 
-    //Fear controls
-    private GameObject[] badBoids;
-    private List<GameObject> visibleBadBoids = new List<GameObject>();
-
-    public float fearStrength = 2.0f;
-    public float fearRadius = 5.0f;
-
     private float spawnObstructionRadius = 2.5f;
 
     //Bounding box values
@@ -95,10 +84,9 @@ public class BoidCore : MonoBehaviour
         random = GameObject.Find("SeaweedManager").GetComponent<SeaweedManager>().random;
         this.followTarget = GameObject.Find("Target");
         //this.basicBoids = GameObject.Find("BoidManager").GetComponent<BoidManager>().basicBoids;
-        this.basicBoids = GameObject.FindGameObjectsWithTag("BoidBasic");
-        this.obstacles = GameObject.FindGameObjectsWithTag("Obstacle");
-        this.seaweed = GameObject.FindGameObjectsWithTag("Seaweed");
         this.badBoids = GameObject.FindGameObjectsWithTag("BoidBad");
+        this.obstacles = GameObject.FindGameObjectsWithTag("Obstacle");
+        //this.prey = GameObject.FindGameObjectsWithTag("Seaweed");
 
         this.age = random.Next(ageMin, ageMax);
         this.appetite = random.Next(appetiteMin, appetiteMax);
@@ -115,8 +103,6 @@ public class BoidCore : MonoBehaviour
     {
         //this.basicBoids = GameObject.FindGameObjectsWithTag("BoidBasic");
         acceleration = Vector3.zero;
-        cohesionVector = Vector3.zero;
-        alignmentVector = Vector3.zero;
         foodVector = Vector3.zero;
         separationVector = Vector3.zero;
 
@@ -137,33 +123,13 @@ public class BoidCore : MonoBehaviour
         //Update visible obstacles
         updateVisibleObstacles();
         //Update visible food
-        updateVisibleSeaweed();
+        //TODO HUNTING LOGIC
         //Update visible flockmates
         updateVisibleFriends();
-        //Update visible predators
-        updateVisibleBadBoids();
         var separationForce = Vector3.zero;
         //If at least one potential flockmate is identified, begin applying flocking rules
         if(visibleFriends.Count > 0){
-            //Cohesion rule - Steer towards the centre of nearby boids of the same species
-            Vector3 centreOfFriends = centreOfKnownFlock();
-            Vector3 distanceToCentreOfFriends = (centreOfFriends - transform.position);
-            var cohesionForce = forceTowardsPoint(distanceToCentreOfFriends);
-            //Debug.Log(cohesionForce);
-            if(visibleFriends.Count <= 4){
-                acceleration += cohesionForce*cohesionStrength;
-                cohesionVector = cohesionForce*cohesionStrength;
-            }else{
-                acceleration -= cohesionForce*cohesionStrength;
-                cohesionVector = cohesionForce*cohesionStrength;
-            }
-            
-
-            //Alignment rule - Steer towards the average heading of nearby boids of the same species
-            Vector3 alignmentOfFriends = alignmentOfKnownFlock();
-            var alignmentForce = forceTowardsPoint(alignmentOfFriends);
-            acceleration += alignmentForce*alignmentStrength;
-            alignmentVector = alignmentForce*alignmentStrength;
+            //Alignment and Cohesion: Bad Boids are territorial and do not school together
 
             //Separation rule - Avoid collisions with other boids and the environment       
             foreach(GameObject boid in visibleFriends){
@@ -178,38 +144,13 @@ public class BoidCore : MonoBehaviour
             acceleration += forceTowardsPoint(Vector3.zero - transform.position);
         }
 
-        if(visibleBadBoids.Count() > 0){
-            var fearForce = Vector3.zero;
-            foreach(GameObject boid in visibleBadBoids){
-                if(boid != null){
-                    if(Vector3.Distance(transform.position, boid.transform.position) <= fearRadius){
-                        Debug.Log(Vector3.Distance(transform.position, boid.transform.position));
-                        fearForce += forceTowardsPoint(boid.transform.position - transform.position);                   
-                    }
-                }
-            }
-            Debug.Log("I'm scared!");
-            acceleration -= fearForce*fearStrength;
-        }
+        
 
-        //If hungry, hunt for seaweed
+        //If hungry, hunt for prey
         appetite -= 1;
         //Debug.Log(visibleSeaweed.Count);
         if(visibleSeaweed.Count > 0 && appetite <= 0 && targetedFood == null){
-            foreach(GameObject weed in visibleSeaweed){
-                if(weed != null && !weed.CompareTag("Claimed")){
-                    weed.tag = "Claimed";
-                    targetedFood = weed;
-                    Debug.Log("I found something to eat!");
-                    foreach(GameObject boid in basicBoids){
-                        if(boid != null){
-                            boid.GetComponent<BoidCore>().updateVisibleSeaweed();
-                        }
-                            
-                    }
-                    break;
-                }
-            }
+            //TODO HUNTING LOGIC
         }
         var foodForce = Vector3.zero;
         if(targetedFood != null){
@@ -218,15 +159,13 @@ public class BoidCore : MonoBehaviour
             //Debug.Log(foodForce*foodStrength);
             //acceleration += foodForce*foodStrength;
             acceleration = foodForce*foodStrength;
-            cohesionVector = Vector3.zero;
-            alignmentVector = Vector3.zero;
             foodVector = foodForce*foodStrength;
             //Debug.Log("I'm moving towards food!");
             if(Vector3.Distance(transform.position, targetedFood.transform.position) <= (eatingRadius)){
                 appetite = random.Next(appetiteMin, appetiteMax);
                 reproductionCount -= 1;
                 Destroy(targetedFood);
-                updateVisibleSeaweed();
+                //TODO HUNTING LOGIC
                 targetedFood = null;
                 Debug.Log("I ate the food!");
             }
@@ -252,7 +191,7 @@ public class BoidCore : MonoBehaviour
             reproductionCount = 2;
             var spawnPoint = findUnobstructedPoint((int)-clampX, (int)clampX);
             childToSpawn = Instantiate(childPrefab, spawnPoint, Quaternion.Euler(new Vector3(UnityEngine.Random.Range(0, 360), UnityEngine.Random.Range(0, 360), 0)));
-            childToSpawn.name = "BoidBasic (" + random.Next().ToString()+")";
+            childToSpawn.name = "BoidBad (" + random.Next().ToString()+")";
             if(random.Next(1, 20) == 20){
                 childToSpawn.gameObject.GetComponent<MeshRenderer>().material = Resources.Load("Materials/BoidBlue_Shiny") as Material;
             }
@@ -324,11 +263,11 @@ public class BoidCore : MonoBehaviour
     //}
 
     void updateVisibleFriends(){
-        this.basicBoids = GameObject.FindGameObjectsWithTag("BoidBasic");
-        if(basicBoids == null || basicBoids.Length == 0){
-            Debug.Log("basicBoids is null or empty!!");
+        this.badBoids = GameObject.FindGameObjectsWithTag("BoidBad");
+        if(badBoids == null || badBoids.Length == 0){
+            Debug.Log("badBoids is null or empty!!");
         }else{
-            foreach(GameObject boid in basicBoids){
+            foreach(GameObject boid in badBoids){
                 if(boid != this.gameObject && boid != null){
                     if(Vector3.Distance(boid.transform.position, this.gameObject.transform.position) <= visionRadius){
                         if(!visibleFriends.Contains(boid)){
@@ -361,50 +300,6 @@ public class BoidCore : MonoBehaviour
                 }else{
                     if(visibleObstacles.Contains(obstacle)){
                         visibleObstacles.Remove(obstacle);
-                    }
-                }
-            
-            }
-        }
-        
-    }
-
-    void updateVisibleBadBoids(){
-        this.badBoids = GameObject.FindGameObjectsWithTag("BoidBad");
-        if(badBoids == null || badBoids.Length == 0){
-            //Debug.Log("obstacles is null or empty!!");
-        }else{
-            //Debug.Log("Obstacles in scene: "+obstacles.Length);
-            foreach(GameObject boid in badBoids){
-                if(Vector3.Distance(boid.transform.position, this.gameObject.transform.position) <= visionRadius){
-                    if(!visibleBadBoids.Contains(boid)){
-                        //Debug.Log("I saw an obstacle!");
-                        visibleBadBoids.Add(boid);
-                    }
-                }else{
-                    if(visibleBadBoids.Contains(boid)){
-                        visibleBadBoids.Remove(boid);
-                    }
-                }
-            
-            }
-        }
-        
-    }
-
-    void updateVisibleSeaweed(){
-        this.seaweed = GameObject.FindGameObjectsWithTag("Seaweed");
-        if(seaweed == null || seaweed.Length == 0){
-            Debug.Log("seaweed is null or empty!!");
-        }else{
-            foreach(GameObject weed in seaweed){
-                if(Vector3.Distance(weed.transform.position, this.gameObject.transform.position) <= visionRadius){
-                    if(!visibleSeaweed.Contains(weed)){
-                        visibleSeaweed.Add(weed);
-                    }
-                }else{
-                    if(visibleSeaweed.Contains(weed)){
-                        visibleSeaweed.Remove(weed);
                     }
                 }
             
