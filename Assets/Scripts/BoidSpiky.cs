@@ -5,11 +5,11 @@ using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using System;
 
-public class BoidBad : MonoBehaviour
+public class BoidSpiky : MonoBehaviour
 {
 
     System.Random random;
-    private GameObject[] badBoids;
+    private GameObject[] spikyBoids;
     private GameObject[] obstacles;
 
     //STATE VARIABLES
@@ -27,10 +27,14 @@ public class BoidBad : MonoBehaviour
     private Vector3 acceleration;
 
     //Speed controls
-    public float minimumSpeed = 2.0f;
-    public float maximumSpeed = 5.5f;
+    public float minimumSpeed = 1.0f;
+    public float maximumSpeed = 5.0f;
 
     //Boid rule controls
+    public float cohesionStrength = 1.0f;
+    public Vector3 cohesionVector = Vector3.zero;
+    public float alignmentStrength = 1.25f;
+    public Vector3 alignmentVector = Vector3.zero;
     public float separationStrength = 1.25f;
     public Vector3 separationVector = Vector3.zero;
     public float separationRadius = 2.5f;
@@ -48,14 +52,8 @@ public class BoidBad : MonoBehaviour
     public Vector3 followOffset;
 
     //Hunger controls
-    private GameObject[] prey;
-    private List<GameObject> visiblePrey = new List<GameObject>();
-
-    private Vector3 territory;
-
-    private int boredom;
-    public int boredomMin = 600;
-    public int boredomMax = 900;
+    private GameObject[] bones;
+    private List<GameObject> visibleBones = new List<GameObject>();
 
     public float eatingRadius = 1.5f;
 
@@ -69,23 +67,26 @@ public class BoidBad : MonoBehaviour
     public GameObject childPrefab;
     private GameObject childToSpawn;
     private int reproductionCount;
-    public int foodToReproduce = 3;
+    public int foodToReproduce = 2;
 
     private int age;
-    public int ageMin = 35000;
-    public int ageMax = 65000;
+    public int ageMin = 45000;
+    public int ageMax = 55000;
 
     public GameObject skeletonPrefab;
     private GameObject skeletonToSpawn;
 
-    private float spawnObstructionRadius = 2.5f;
-
     //Fear controls
-    private GameObject[] spikyBoids;
-    private List<GameObject> visibleSpikyBoids = new List<GameObject>();
+    private GameObject[] fastBoids;
+    private List<GameObject> visibleFastBoids = new List<GameObject>();
+
+    private GameObject[] basicBoids;
+    private List<GameObject> visibleBasicBoids = new List<GameObject>();
 
     public float fearStrength = 2.0f;
     public float fearRadius = 5.0f;
+
+    private float spawnObstructionRadius = 2.5f;
 
     //Bounding box values
     public float clampX = 15.0f;
@@ -98,17 +99,17 @@ public class BoidBad : MonoBehaviour
         random = GameObject.Find("TankManager").GetComponent<SeaweedManager>().random;
         this.followTarget = GameObject.Find("Target");
         //this.basicBoids = GameObject.Find("BoidManager").GetComponent<BoidManager>().basicBoids;
-        this.badBoids = GameObject.FindGameObjectsWithTag("BoidBad");
+        this.spikyBoids = GameObject.FindGameObjectsWithTag("BoidSpiky");
         this.obstacles = GameObject.FindGameObjectsWithTag("Obstacle");
-        this.prey = GameObject.FindGameObjectsWithTag("BoidBad_Prey");
+        this.bones = GameObject.FindGameObjectsWithTag("BoidDead");
+        this.fastBoids = GameObject.FindGameObjectsWithTag("BoidFast");
+        this.basicBoids = GameObject.FindGameObjectsWithTag("BoidBasic");
 
         this.age = random.Next(ageMin, ageMax);
         this.appetite = random.Next(appetiteMin, appetiteMax);
 
         this.reproductionCount = foodToReproduce;
 
-        this.territory = findUnobstructedPoint(-10,10);
-        this.boredom = random.Next(boredomMin, boredomMax);
 
         float startingSpeed = ((minimumSpeed+maximumSpeed)/2);
         transform.forward = UnityEngine.Random.rotation.eulerAngles;
@@ -119,13 +120,10 @@ public class BoidBad : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        boredom -= 1;
-        if(boredom <= 0){
-            this.territory = findUnobstructedPoint(-10,10);
-            boredom = random.Next(boredomMin, boredomMax);
-        }
         //this.basicBoids = GameObject.FindGameObjectsWithTag("BoidBasic");
         acceleration = Vector3.zero;
+        cohesionVector = Vector3.zero;
+        alignmentVector = Vector3.zero;
         foodVector = Vector3.zero;
         separationVector = Vector3.zero;
 
@@ -146,16 +144,36 @@ public class BoidBad : MonoBehaviour
         //Update visible obstacles
         updateVisibleObstacles();
         //Update visible food
-        updateVisiblePrey();
+        updateVisibleBones();
         //Update visible flockmates
         updateVisibleFriends();
-        //Update visible spiky boids
-        updateVisibleSpikyBoids();
+        //Update visible predators
+        updateVisibleFastBoids();
+        //Update visible basic boids
+        updateVisibleBasicBoids();
         var separationForce = Vector3.zero;
         //If at least one potential flockmate is identified, begin applying flocking rules
         if(visibleFriends.Count > 0){
-            //Alignment and Cohesion: Bad Boids are territorial and do not school together
-            acceleration += forceTowardsPoint(territory - transform.position);
+            //Cohesion rule - Steer towards the centre of nearby boids of the same species
+            Vector3 centreOfFriends = centreOfKnownFlock();
+            Vector3 distanceToCentreOfFriends = (centreOfFriends - transform.position);
+            var cohesionForce = forceTowardsPoint(distanceToCentreOfFriends);
+            //Debug.Log(cohesionForce);
+            if(visibleFriends.Count <= 4){
+                acceleration += cohesionForce*cohesionStrength;
+                cohesionVector = cohesionForce*cohesionStrength;
+            }else{
+                acceleration -= cohesionForce*cohesionStrength;
+                cohesionVector = cohesionForce*cohesionStrength;
+            }
+            
+
+            //Alignment rule - Steer towards the average heading of nearby boids of the same species
+            Vector3 alignmentOfFriends = alignmentOfKnownFlock();
+            var alignmentForce = forceTowardsPoint(alignmentOfFriends);
+            acceleration += alignmentForce*alignmentStrength;
+            alignmentVector = alignmentForce*alignmentStrength;
+
             //Separation rule - Avoid collisions with other boids and the environment       
             foreach(GameObject boid in visibleFriends){
                 if(boid != null){
@@ -166,13 +184,20 @@ public class BoidBad : MonoBehaviour
             }
             acceleration -= separationForce*separationStrength;
         }else{
-            acceleration += forceTowardsPoint(territory - transform.position);
+            acceleration += forceTowardsPoint(Vector3.zero - transform.position);
         }
 
-        //Avoid spiky boids
         var fearForce = Vector3.zero;
-        if(visibleSpikyBoids.Count() > 0){
-            foreach(GameObject boid in visibleSpikyBoids){
+        if(visibleFastBoids.Count() > 0){
+            foreach(GameObject boid in visibleFastBoids){
+                if(boid != null){
+                    if(Vector3.Distance(transform.position, boid.transform.position) <= fearRadius){
+                        Debug.Log(Vector3.Distance(transform.position, boid.transform.position));
+                        fearForce += forceTowardsPoint(boid.transform.position - transform.position);                   
+                    }
+                }
+            }
+            foreach(GameObject boid in visibleBasicBoids){
                 if(boid != null){
                     if(Vector3.Distance(transform.position, boid.transform.position) <= fearRadius){
                         Debug.Log(Vector3.Distance(transform.position, boid.transform.position));
@@ -183,33 +208,38 @@ public class BoidBad : MonoBehaviour
             Debug.Log("I'm scared!");
             acceleration -= fearForce*fearStrength;
         }
+        // fearForce = Vector3.zero;
+        // if(visibleBasicBoids.Count() > 0){
+        //     foreach(GameObject boid in visibleBasicBoids){
+        //         if(boid != null){
+        //             if(Vector3.Distance(transform.position, boid.transform.position) <= fearRadius){
+        //                 Debug.Log(Vector3.Distance(transform.position, boid.transform.position));
+        //                 fearForce += forceTowardsPoint(boid.transform.position - transform.position);                   
+        //             }
+        //         }
+        //     }
+        //     Debug.Log("I'm scared!");
+        //     acceleration -= fearForce*fearStrength;
+        // }
 
-        
-
-        //If hungry, hunt for prey
+        //If hungry, hunt for seaweed
         appetite -= 1;
         //Debug.Log(visibleSeaweed.Count);
-        if(appetite <= 0 && targetedFood == null){
-            if(visiblePrey.Count() > 0){
-                foreach(GameObject prey in visiblePrey){
-                    if(prey != null && !prey.CompareTag("Claimed")){
-                        prey.tag = "Claimed";
-                        targetedFood = prey;
-                        Debug.Log("I found something to eat!");
-                        foreach(GameObject boid in badBoids){
-                            if(boid != null){
-                                boid.GetComponent<BoidBad>().updateVisiblePrey();
-                            }
-                            
+        if(visibleBones.Count > 0 && appetite <= 0 && targetedFood == null){
+            foreach(GameObject bone in visibleBones){
+                if(bone != null && !bone.CompareTag("Claimed")){
+                    bone.tag = "Claimed";
+                    targetedFood = bone;
+                    Debug.Log("I found something to eat!");
+                    foreach(GameObject boid in spikyBoids){
+                        if(boid != null){
+                            boid.GetComponent<BoidSpiky>().updateVisibleBones();
                         }
-                        break;
+                            
                     }
+                    break;
                 }
-            }else{
-                this.territory = findUnobstructedPoint(-10,10);
-                this.boredom = random.Next(boredomMin, boredomMax);
             }
-            
         }
         var foodForce = Vector3.zero;
         if(targetedFood != null){
@@ -218,16 +248,15 @@ public class BoidBad : MonoBehaviour
             //Debug.Log(foodForce*foodStrength);
             //acceleration += foodForce*foodStrength;
             acceleration = foodForce*foodStrength;
+            cohesionVector = Vector3.zero;
+            alignmentVector = Vector3.zero;
             foodVector = foodForce*foodStrength;
             //Debug.Log("I'm moving towards food!");
             if(Vector3.Distance(transform.position, targetedFood.transform.position) <= (eatingRadius)){
                 appetite = random.Next(appetiteMin, appetiteMax);
                 reproductionCount -= 1;
-                skeletonToSpawn = Instantiate(skeletonPrefab, targetedFood.transform.parent.transform.position, Quaternion.Euler(new Vector3(UnityEngine.Random.Range(0, 360), UnityEngine.Random.Range(0, 360), UnityEngine.Random.Range(0, 360))));
-                skeletonToSpawn.name = "BoidDead (" + random.Next().ToString()+")";
-                Debug.Log("Spawned new skeleton!");
-                Destroy(targetedFood.transform.parent.gameObject);
-                //TODO HUNTING LOGIC
+                Destroy(targetedFood);
+                updateVisibleBones();
                 targetedFood = null;
                 Debug.Log("I ate the food!");
             }
@@ -245,16 +274,15 @@ public class BoidBad : MonoBehaviour
             
             }
         }
+            
         acceleration -= separationForce*separationStrength;
         separationVector = -(separationForce*separationStrength);
-            
-        
 
         if(reproductionCount <= 0){
             reproductionCount = foodToReproduce;
             var spawnPoint = findUnobstructedPoint((int)-clampX, (int)clampX);
             childToSpawn = Instantiate(childPrefab, spawnPoint, Quaternion.Euler(new Vector3(UnityEngine.Random.Range(0, 360), UnityEngine.Random.Range(0, 360), 0)));
-            childToSpawn.name = "BoidBad (" + random.Next().ToString()+")";
+            childToSpawn.name = "BoidSpiky (" + random.Next().ToString()+")";
             if(random.Next(1, 20) == 20){
                 childToSpawn.gameObject.GetComponent<MeshRenderer>().material = Resources.Load("Materials/BoidBlue_Shiny") as Material;
             }
@@ -330,11 +358,11 @@ public class BoidBad : MonoBehaviour
     //}
 
     void updateVisibleFriends(){
-        this.badBoids = GameObject.FindGameObjectsWithTag("BoidBad");
-        if(badBoids == null || badBoids.Length == 0){
-            Debug.Log("badBoids is null or empty!!");
+        this.spikyBoids = GameObject.FindGameObjectsWithTag("BoidSpiky");
+        if(spikyBoids == null || spikyBoids.Length == 0){
+            Debug.Log("spikyBoids is null or empty!!");
         }else{
-            foreach(GameObject boid in badBoids){
+            foreach(GameObject boid in spikyBoids){
                 if(boid != this.gameObject && boid != null){
                     if(Vector3.Distance(boid.transform.position, this.gameObject.transform.position) <= visionRadius){
                         if(!visibleFriends.Contains(boid)){
@@ -343,29 +371,6 @@ public class BoidBad : MonoBehaviour
                     }else{
                         if(visibleFriends.Contains(boid)){
                             visibleFriends.Remove(boid);
-                        }
-                    }
-                }
-            
-            }
-        }
-        
-    }
-
-    void updateVisiblePrey(){
-        this.prey = GameObject.FindGameObjectsWithTag("BoidBad_Prey");
-        if(prey == null || prey.Length == 0){
-            Debug.Log("prey is null or empty!!");
-        }else{
-            foreach(GameObject boid in prey){
-                if(boid != this.gameObject && boid != null){
-                    if(Vector3.Distance(boid.transform.position, this.gameObject.transform.position) <= visionRadius){
-                        if(!visiblePrey.Contains(boid)){
-                            visiblePrey.Add(boid);
-                        }
-                    }else{
-                        if(visiblePrey.Contains(boid)){
-                            visiblePrey.Remove(boid);
                         }
                     }
                 }
@@ -398,21 +403,65 @@ public class BoidBad : MonoBehaviour
         
     }
 
-    void updateVisibleSpikyBoids(){
-        this.spikyBoids = GameObject.FindGameObjectsWithTag("BoidSpiky");
-        if(spikyBoids == null || badBoids.Length == 0){
+    void updateVisibleFastBoids(){
+        this.fastBoids = GameObject.FindGameObjectsWithTag("BoidFast");
+        if(fastBoids == null || fastBoids.Length == 0){
             //Debug.Log("obstacles is null or empty!!");
         }else{
             //Debug.Log("Obstacles in scene: "+obstacles.Length);
-            foreach(GameObject boid in spikyBoids){
+            foreach(GameObject boid in fastBoids){
                 if(Vector3.Distance(boid.transform.position, this.gameObject.transform.position) <= visionRadius){
-                    if(!visibleSpikyBoids.Contains(boid)){
+                    if(!visibleFastBoids.Contains(boid)){
                         //Debug.Log("I saw an obstacle!");
-                        visibleSpikyBoids.Add(boid);
+                        visibleFastBoids.Add(boid);
                     }
                 }else{
-                    if(visibleSpikyBoids.Contains(boid)){
-                        visibleSpikyBoids.Remove(boid);
+                    if(visibleFastBoids.Contains(boid)){
+                        visibleFastBoids.Remove(boid);
+                    }
+                }
+            
+            }
+        }
+        
+    }
+
+    void updateVisibleBasicBoids(){
+        this.basicBoids = GameObject.FindGameObjectsWithTag("BoidBasic");
+        if(basicBoids == null || basicBoids.Length == 0){
+            Debug.Log("basicBoids is null or empty!!");
+        }else{
+            foreach(GameObject boid in basicBoids){
+                if(boid != this.gameObject && boid != null){
+                    if(Vector3.Distance(boid.transform.position, this.gameObject.transform.position) <= visionRadius){
+                        if(!visibleBasicBoids.Contains(boid)){
+                            visibleBasicBoids.Add(boid);
+                        }
+                    }else{
+                        if(visibleBasicBoids.Contains(boid)){
+                            visibleBasicBoids.Remove(boid);
+                        }
+                    }
+                }
+            
+            }
+        }
+        
+    }
+
+    void updateVisibleBones(){
+        this.bones = GameObject.FindGameObjectsWithTag("BoidDead");
+        if(bones == null || bones.Length == 0){
+            Debug.Log("bones is null or empty!!");
+        }else{
+            foreach(GameObject bone in bones){
+                if(Vector3.Distance(bone.transform.position, this.gameObject.transform.position) <= visionRadius){
+                    if(!visibleBones.Contains(bone)){
+                        visibleBones.Add(bone);
+                    }
+                }else{
+                    if(visibleBones.Contains(bone)){
+                        visibleBones.Remove(bone);
                     }
                 }
             
@@ -481,3 +530,4 @@ public class BoidBad : MonoBehaviour
         return vector;
     }
 }
+

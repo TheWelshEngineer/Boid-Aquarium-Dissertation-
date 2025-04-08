@@ -122,7 +122,7 @@ GameObject:
   - component: {fileID: 4638616592650674465}
   m_Layer: 0
   m_Name: BoidBasic_Head
-  m_TagString: Untagged
+  m_TagString: BoidBad_Prey
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -469,6 +469,7 @@ MonoBehaviour:
   appetiteMax: 10800
   targetedFood: {fileID: 0}
   childPrefab: {fileID: 8865294533196376489}
+  foodToReproduce: 2
   ageMin: 30000
   ageMax: 50000
   skeletonPrefab: {fileID: 6814059445269304629, guid: 166b518c2bd80794daae95e48f4e7fed, type: 3}

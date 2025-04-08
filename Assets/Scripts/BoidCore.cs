@@ -66,7 +66,8 @@ public class BoidCore : MonoBehaviour
     //Reproduction controls
     public GameObject childPrefab;
     private GameObject childToSpawn;
-    private int reproductionCount = 2;
+    private int reproductionCount;
+    public int foodToReproduce = 2;
 
     private int age;
     public int ageMin = 30000;
@@ -78,6 +79,9 @@ public class BoidCore : MonoBehaviour
     //Fear controls
     private GameObject[] badBoids;
     private List<GameObject> visibleBadBoids = new List<GameObject>();
+
+    private GameObject[] spikyBoids;
+    private List<GameObject> visibleSpikyBoids = new List<GameObject>();
 
     public float fearStrength = 2.0f;
     public float fearRadius = 5.0f;
@@ -92,16 +96,19 @@ public class BoidCore : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        random = GameObject.Find("SeaweedManager").GetComponent<SeaweedManager>().random;
+        random = GameObject.Find("TankManager").GetComponent<SeaweedManager>().random;
         this.followTarget = GameObject.Find("Target");
         //this.basicBoids = GameObject.Find("BoidManager").GetComponent<BoidManager>().basicBoids;
         this.basicBoids = GameObject.FindGameObjectsWithTag("BoidBasic");
         this.obstacles = GameObject.FindGameObjectsWithTag("Obstacle");
         this.seaweed = GameObject.FindGameObjectsWithTag("Seaweed");
         this.badBoids = GameObject.FindGameObjectsWithTag("BoidBad");
+        this.spikyBoids = GameObject.FindGameObjectsWithTag("BoidSpiky");
 
         this.age = random.Next(ageMin, ageMax);
         this.appetite = random.Next(appetiteMin, appetiteMax);
+
+        this.reproductionCount = foodToReproduce;
 
 
         float startingSpeed = ((minimumSpeed+maximumSpeed)/2);
@@ -142,6 +149,8 @@ public class BoidCore : MonoBehaviour
         updateVisibleFriends();
         //Update visible predators
         updateVisibleBadBoids();
+        //Update visible spiky boids
+        updateVisibleSpikyBoids();
         var separationForce = Vector3.zero;
         //If at least one potential flockmate is identified, begin applying flocking rules
         if(visibleFriends.Count > 0){
@@ -177,10 +186,17 @@ public class BoidCore : MonoBehaviour
         }else{
             acceleration += forceTowardsPoint(Vector3.zero - transform.position);
         }
-
-        if(visibleBadBoids.Count() > 0){
-            var fearForce = Vector3.zero;
+        var fearForce = Vector3.zero;
+        if(visibleBadBoids.Count() > 0){ 
             foreach(GameObject boid in visibleBadBoids){
+                if(boid != null){
+                    if(Vector3.Distance(transform.position, boid.transform.position) <= fearRadius){
+                        Debug.Log(Vector3.Distance(transform.position, boid.transform.position));
+                        fearForce += forceTowardsPoint(boid.transform.position - transform.position);                   
+                    }
+                }
+            }
+            foreach(GameObject boid in visibleSpikyBoids){
                 if(boid != null){
                     if(Vector3.Distance(transform.position, boid.transform.position) <= fearRadius){
                         Debug.Log(Vector3.Distance(transform.position, boid.transform.position));
@@ -191,6 +207,19 @@ public class BoidCore : MonoBehaviour
             Debug.Log("I'm scared!");
             acceleration -= fearForce*fearStrength;
         }
+        // fearForce = Vector3.zero;
+        // if(visibleSpikyBoids.Count() > 0){
+        //     foreach(GameObject boid in visibleSpikyBoids){
+        //         if(boid != null){
+        //             if(Vector3.Distance(transform.position, boid.transform.position) <= fearRadius){
+        //                 Debug.Log(Vector3.Distance(transform.position, boid.transform.position));
+        //                 fearForce += forceTowardsPoint(boid.transform.position - transform.position);                   
+        //             }
+        //         }
+        //     }
+        //     Debug.Log("I'm scared!");
+        //     acceleration -= fearForce*fearStrength;
+        // }
 
         //If hungry, hunt for seaweed
         appetite -= 1;
@@ -234,8 +263,8 @@ public class BoidCore : MonoBehaviour
         }
 
         //If at least one obstacle is identified, begin avoiding obstacles
+        separationForce = Vector3.zero;
         if(obstacles.Length > 0){
-            separationForce = Vector3.zero;
             foreach(GameObject obstacle in obstacles){
                 if(Vector3.Distance(transform.position, obstacle.transform.position) <= separationRadius*2){
                     Debug.Log("Too close!");
@@ -249,7 +278,7 @@ public class BoidCore : MonoBehaviour
         separationVector = -(separationForce*separationStrength);
 
         if(reproductionCount <= 0){
-            reproductionCount = 2;
+            reproductionCount = foodToReproduce;
             var spawnPoint = findUnobstructedPoint((int)-clampX, (int)clampX);
             childToSpawn = Instantiate(childPrefab, spawnPoint, Quaternion.Euler(new Vector3(UnityEngine.Random.Range(0, 360), UnityEngine.Random.Range(0, 360), 0)));
             childToSpawn.name = "BoidBasic (" + random.Next().ToString()+")";
@@ -285,6 +314,10 @@ public class BoidCore : MonoBehaviour
         if(Vector3.Distance(transform.position, Vector3.zero) > 3*((clampX + clampY + clampZ)/3)){
             Debug.Log("Returning escapee boid to tank!");
             transform.position = Vector3.zero;
+            acceleration = Vector3.zero;
+            float startingSpeed = ((minimumSpeed+maximumSpeed)/2);
+            transform.forward = UnityEngine.Random.rotation.eulerAngles;
+            velocity = this.gameObject.transform.forward*startingSpeed;
         }
         
         //Speed and direction storage
@@ -392,6 +425,29 @@ public class BoidCore : MonoBehaviour
         
     }
 
+    void updateVisibleSpikyBoids(){
+        this.spikyBoids = GameObject.FindGameObjectsWithTag("BoidSpiky");
+        if(spikyBoids == null || badBoids.Length == 0){
+            //Debug.Log("obstacles is null or empty!!");
+        }else{
+            //Debug.Log("Obstacles in scene: "+obstacles.Length);
+            foreach(GameObject boid in spikyBoids){
+                if(Vector3.Distance(boid.transform.position, this.gameObject.transform.position) <= visionRadius){
+                    if(!visibleSpikyBoids.Contains(boid)){
+                        //Debug.Log("I saw an obstacle!");
+                        visibleSpikyBoids.Add(boid);
+                    }
+                }else{
+                    if(visibleSpikyBoids.Contains(boid)){
+                        visibleSpikyBoids.Remove(boid);
+                    }
+                }
+            
+            }
+        }
+        
+    }
+
     void updateVisibleSeaweed(){
         this.seaweed = GameObject.FindGameObjectsWithTag("Seaweed");
         if(seaweed == null || seaweed.Length == 0){
@@ -453,14 +509,14 @@ public class BoidCore : MonoBehaviour
                     if(Vector3.Distance(test, obstacle.transform.position) > spawnObstructionRadius){
                         acceptablePoint = true;
                         vector = test;
-                        Debug.Log("Found spawn point!");
+                        Debug.Log("Found point!");
                         break;
                     }
                 }
             }else{
                 acceptablePoint = true;
                 vector = test;
-                Debug.Log("Found spawn point!");
+                Debug.Log("Found point!");
                 break;
             }
             
