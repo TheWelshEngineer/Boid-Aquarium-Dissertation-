@@ -1,14 +1,11 @@
 using System.Collections.Generic;
 using System.Linq;
-using Unity.VisualScripting;
-using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using System;
 
 public class BoidFast : MonoBehaviour
 {
 
-    System.Random random;
     private GameObject[] fastBoids;
     private GameObject[] obstacles;
 
@@ -87,14 +84,13 @@ public class BoidFast : MonoBehaviour
     private float spawnObstructionRadius = 2.5f;
 
     //Bounding box values
-    public float clampX = 15.0f;
-    public float clampY = 15.0f;
-    public float clampZ = 15.0f;
+    public float clampX = 30.0f;
+    public float clampY = 30.0f;
+    public float clampZ = 30.0f;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        random = GameObject.Find("TankManager").GetComponent<SeaweedManager>().random;
         this.followTarget = GameObject.Find("Target");
         //this.basicBoids = GameObject.Find("BoidManager").GetComponent<BoidManager>().basicBoids;
         this.fastBoids = GameObject.FindGameObjectsWithTag("BoidFast");
@@ -102,8 +98,8 @@ public class BoidFast : MonoBehaviour
         this.prey = GameObject.FindGameObjectsWithTag("BoidFast_Prey");
         this.badBoids = GameObject.FindGameObjectsWithTag("BoidBad");
 
-        this.age = random.Next(ageMin, ageMax);
-        this.appetite = random.Next(appetiteMin, appetiteMax);
+        this.age = StaticRandom.randomRange(ageMin, ageMax);
+        this.appetite = StaticRandom.randomRange(appetiteMin, appetiteMax);
 
         this.reproductionCount = foodToReproduce;
 
@@ -114,8 +110,9 @@ public class BoidFast : MonoBehaviour
     }
 
     // Update is called once per frame
-    void Update()
+    public void UpdateBoid()
     {
+
         //this.basicBoids = GameObject.FindGameObjectsWithTag("BoidBasic");
         acceleration = Vector3.zero;
         foodVector = Vector3.zero;
@@ -185,7 +182,6 @@ public class BoidFast : MonoBehaviour
             foreach(GameObject boid in visibleBadBoids){
                 if(boid != null){
                     if(Vector3.Distance(transform.position, boid.transform.position) <= fearRadius){
-                        Debug.Log(Vector3.Distance(transform.position, boid.transform.position));
                         fearForce += forceTowardsPoint(boid.transform.position - transform.position);                   
                     }
                 }
@@ -227,12 +223,12 @@ public class BoidFast : MonoBehaviour
             foodVector = foodForce*foodStrength;
             //Debug.Log("I'm moving towards food!");
             if(Vector3.Distance(transform.position, targetedFood.transform.position) <= (eatingRadius)){
-                appetite = random.Next(appetiteMin, appetiteMax);
+                appetite = StaticRandom.randomRange(appetiteMin, appetiteMax);
                 reproductionCount -= 1;
                 skeletonToSpawn = Instantiate(skeletonPrefab, targetedFood.transform.parent.transform.position, Quaternion.Euler(new Vector3(UnityEngine.Random.Range(0, 360), UnityEngine.Random.Range(0, 360), UnityEngine.Random.Range(0, 360))));
-                skeletonToSpawn.name = "BoidDead (" + random.Next().ToString()+")";
+                skeletonToSpawn.name = "BoidDead (" + StaticRandom.randomInt().ToString()+")";
                 Debug.Log("Spawned new skeleton!");
-                Destroy(targetedFood.transform.parent.gameObject);
+                DestroyImmediate(targetedFood.transform.parent.gameObject);
                 //TODO HUNTING LOGIC
                 targetedFood = null;
                 Debug.Log("I ate the food!");
@@ -260,11 +256,8 @@ public class BoidFast : MonoBehaviour
             reproductionCount = foodToReproduce;
             var spawnPoint = findUnobstructedPoint((int)-clampX, (int)clampX);
             childToSpawn = Instantiate(childPrefab, spawnPoint, Quaternion.Euler(new Vector3(UnityEngine.Random.Range(0, 360), UnityEngine.Random.Range(0, 360), 0)));
-            childToSpawn.name = "BoidFast (" + random.Next().ToString()+")";
-            if(random.Next(1, 20) == 20){
-                childToSpawn.gameObject.GetComponent<MeshRenderer>().material = Resources.Load("Materials/BoidBlue_Shiny") as Material;
-            }
-            Debug.Log("Spawned new child!");
+            childToSpawn.name = "BoidFast (" + StaticRandom.randomInt().ToString()+")";
+            Debug.Log("Spawned new baby Fast Boid!");
         }
 
         //Clamp position to within bounding box
@@ -315,11 +308,11 @@ public class BoidFast : MonoBehaviour
         
 
         age -= 1;
-        if(age <= 0 && random.Next(1, 100) == 1){
+        if(age <= 0 && StaticRandom.randomRange(1, 100) == 1){
             skeletonToSpawn = Instantiate(skeletonPrefab, transform.position, Quaternion.Euler(new Vector3(UnityEngine.Random.Range(0, 360), UnityEngine.Random.Range(0, 360), UnityEngine.Random.Range(0, 360))));
-            skeletonToSpawn.name = "BoidDead (" + random.Next().ToString()+")";
+            skeletonToSpawn.name = "BoidDead (" + StaticRandom.randomInt().ToString()+")";
             Debug.Log("Spawned new skeleton!");
-            Destroy(this.gameObject);
+            DestroyImmediate(this.gameObject);
         }
     }
 
@@ -462,7 +455,7 @@ public class BoidFast : MonoBehaviour
         bool acceptablePoint = false;
         while(!acceptablePoint){
             Vector3 test = randomVector(lowerBound, upperBound);
-            if(obstacles.Any()){
+            if(obstacles.Any() && obstacles != null){
                 foreach(GameObject obstacle in obstacles){
                     if(Vector3.Distance(test, obstacle.transform.position) > spawnObstructionRadius){
                         acceptablePoint = true;
@@ -483,7 +476,7 @@ public class BoidFast : MonoBehaviour
     }
 
     Vector3 randomVector(int lowerBound, int upperBound){
-        Vector3 vector = new Vector3(random.Next(lowerBound, upperBound), random.Next(lowerBound, upperBound), random.Next(lowerBound, upperBound));
+        Vector3 vector = new Vector3(StaticRandom.randomRange(lowerBound, upperBound), StaticRandom.randomRange(lowerBound, upperBound), StaticRandom.randomRange(lowerBound, upperBound));
         return vector;
     }
 }

@@ -465,8 +465,8 @@ MonoBehaviour:
   followTarget: {fileID: 0}
   followOffset: {x: 0, y: 0, z: 0}
   eatingRadius: 1.5
-  appetiteMin: 7200
-  appetiteMax: 10800
+  appetiteMin: 6480
+  appetiteMax: 9720
   targetedFood: {fileID: 0}
   childPrefab: {fileID: 8865294533196376489}
   foodToReproduce: 2
@@ -475,6 +475,6 @@ MonoBehaviour:
   skeletonPrefab: {fileID: 6814059445269304629, guid: 166b518c2bd80794daae95e48f4e7fed, type: 3}
   fearStrength: 2
   fearRadius: 5
-  clampX: 15
-  clampY: 15
-  clampZ: 15
+  clampX: 30
+  clampY: 30
+  clampZ: 30

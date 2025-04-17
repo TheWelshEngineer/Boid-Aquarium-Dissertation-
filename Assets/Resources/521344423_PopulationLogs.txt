@@ -1,0 +1,7 @@
+Basic Boid population: 16
+Bad Boid population: 2
+Spiky Boid population: 20
+Fast Boid population: 6
+Seaweed count: 26
+Dead boid count: 26
+

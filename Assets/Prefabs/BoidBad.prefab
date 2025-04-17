@@ -251,15 +251,15 @@ MonoBehaviour:
   appetiteMax: 10800
   targetedFood: {fileID: 0}
   childPrefab: {fileID: 3433990271446044839}
-  foodToReproduce: 3
+  foodToReproduce: 2
   ageMin: 35000
   ageMax: 65000
   skeletonPrefab: {fileID: 6814059445269304629, guid: 166b518c2bd80794daae95e48f4e7fed, type: 3}
   fearStrength: 2
   fearRadius: 5
-  clampX: 15
-  clampY: 15
-  clampZ: 15
+  clampX: 30
+  clampY: 30
+  clampZ: 30
 --- !u!1 &3997758874823984146
 GameObject:
   m_ObjectHideFlags: 0

@@ -1,14 +1,11 @@
 using System.Collections.Generic;
 using System.Linq;
-using Unity.VisualScripting;
-using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using System;
 
 public class BoidBad : MonoBehaviour
 {
 
-    System.Random random;
     private GameObject[] badBoids;
     private GameObject[] obstacles;
 
@@ -88,27 +85,26 @@ public class BoidBad : MonoBehaviour
     public float fearRadius = 5.0f;
 
     //Bounding box values
-    public float clampX = 15.0f;
-    public float clampY = 15.0f;
-    public float clampZ = 15.0f;
+    public float clampX = 30.0f;
+    public float clampY = 30.0f;
+    public float clampZ = 30.0f;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        random = GameObject.Find("TankManager").GetComponent<SeaweedManager>().random;
         this.followTarget = GameObject.Find("Target");
         //this.basicBoids = GameObject.Find("BoidManager").GetComponent<BoidManager>().basicBoids;
         this.badBoids = GameObject.FindGameObjectsWithTag("BoidBad");
         this.obstacles = GameObject.FindGameObjectsWithTag("Obstacle");
         this.prey = GameObject.FindGameObjectsWithTag("BoidBad_Prey");
 
-        this.age = random.Next(ageMin, ageMax);
-        this.appetite = random.Next(appetiteMin, appetiteMax);
+        this.age = StaticRandom.randomRange(ageMin, ageMax);
+        this.appetite = StaticRandom.randomRange(appetiteMin, appetiteMax);
 
         this.reproductionCount = foodToReproduce;
 
-        this.territory = findUnobstructedPoint(-10,10);
-        this.boredom = random.Next(boredomMin, boredomMax);
+        this.territory = findUnobstructedPoint((int)-clampX+10,(int)clampX+10);
+        this.boredom = StaticRandom.randomRange(boredomMin, boredomMax);
 
         float startingSpeed = ((minimumSpeed+maximumSpeed)/2);
         transform.forward = UnityEngine.Random.rotation.eulerAngles;
@@ -117,12 +113,13 @@ public class BoidBad : MonoBehaviour
     }
 
     // Update is called once per frame
-    void Update()
+    public void UpdateBoid()
     {
+
         boredom -= 1;
         if(boredom <= 0){
-            this.territory = findUnobstructedPoint(-10,10);
-            boredom = random.Next(boredomMin, boredomMax);
+            this.territory = findUnobstructedPoint((int)-clampX+10,(int)clampX-10);
+            boredom = StaticRandom.randomRange(boredomMin, boredomMax);
         }
         //this.basicBoids = GameObject.FindGameObjectsWithTag("BoidBasic");
         acceleration = Vector3.zero;
@@ -175,7 +172,6 @@ public class BoidBad : MonoBehaviour
             foreach(GameObject boid in visibleSpikyBoids){
                 if(boid != null){
                     if(Vector3.Distance(transform.position, boid.transform.position) <= fearRadius){
-                        Debug.Log(Vector3.Distance(transform.position, boid.transform.position));
                         fearForce += forceTowardsPoint(boid.transform.position - transform.position);                   
                     }
                 }
@@ -206,8 +202,8 @@ public class BoidBad : MonoBehaviour
                     }
                 }
             }else{
-                this.territory = findUnobstructedPoint(-10,10);
-                this.boredom = random.Next(boredomMin, boredomMax);
+                this.territory = findUnobstructedPoint((int)-clampX,(int)clampX);
+                this.boredom = StaticRandom.randomRange(boredomMin, boredomMax);
             }
             
         }
@@ -221,12 +217,12 @@ public class BoidBad : MonoBehaviour
             foodVector = foodForce*foodStrength;
             //Debug.Log("I'm moving towards food!");
             if(Vector3.Distance(transform.position, targetedFood.transform.position) <= (eatingRadius)){
-                appetite = random.Next(appetiteMin, appetiteMax);
+                appetite = StaticRandom.randomRange(appetiteMin, appetiteMax);
                 reproductionCount -= 1;
                 skeletonToSpawn = Instantiate(skeletonPrefab, targetedFood.transform.parent.transform.position, Quaternion.Euler(new Vector3(UnityEngine.Random.Range(0, 360), UnityEngine.Random.Range(0, 360), UnityEngine.Random.Range(0, 360))));
-                skeletonToSpawn.name = "BoidDead (" + random.Next().ToString()+")";
+                skeletonToSpawn.name = "BoidDead (" + StaticRandom.randomInt().ToString()+")";
                 Debug.Log("Spawned new skeleton!");
-                Destroy(targetedFood.transform.parent.gameObject);
+                DestroyImmediate(targetedFood.transform.parent.gameObject);
                 //TODO HUNTING LOGIC
                 targetedFood = null;
                 Debug.Log("I ate the food!");
@@ -254,11 +250,8 @@ public class BoidBad : MonoBehaviour
             reproductionCount = foodToReproduce;
             var spawnPoint = findUnobstructedPoint((int)-clampX, (int)clampX);
             childToSpawn = Instantiate(childPrefab, spawnPoint, Quaternion.Euler(new Vector3(UnityEngine.Random.Range(0, 360), UnityEngine.Random.Range(0, 360), 0)));
-            childToSpawn.name = "BoidBad (" + random.Next().ToString()+")";
-            if(random.Next(1, 20) == 20){
-                childToSpawn.gameObject.GetComponent<MeshRenderer>().material = Resources.Load("Materials/BoidBlue_Shiny") as Material;
-            }
-            Debug.Log("Spawned new child!");
+            childToSpawn.name = "BoidBad (" + StaticRandom.randomInt().ToString()+")";
+            Debug.Log("Spawned new baby Bad Boid!");
         }
 
         //Clamp position to within bounding box
@@ -309,11 +302,11 @@ public class BoidBad : MonoBehaviour
         
 
         age -= 1;
-        if(age <= 0 && random.Next(1, 100) == 1){
+        if(age <= 0 && StaticRandom.randomRange(1, 100) == 1){
             skeletonToSpawn = Instantiate(skeletonPrefab, transform.position, Quaternion.Euler(new Vector3(UnityEngine.Random.Range(0, 360), UnityEngine.Random.Range(0, 360), UnityEngine.Random.Range(0, 360))));
-            skeletonToSpawn.name = "BoidDead (" + random.Next().ToString()+")";
+            skeletonToSpawn.name = "BoidDead (" + StaticRandom.randomInt().ToString()+")";
             Debug.Log("Spawned new skeleton!");
-            Destroy(this.gameObject);
+            DestroyImmediate(this.gameObject);
         }
     }
 
@@ -456,7 +449,7 @@ public class BoidBad : MonoBehaviour
         bool acceptablePoint = false;
         while(!acceptablePoint){
             Vector3 test = randomVector(lowerBound, upperBound);
-            if(obstacles.Any()){
+            if(obstacles != null && obstacles.Any()){
                 foreach(GameObject obstacle in obstacles){
                     if(Vector3.Distance(test, obstacle.transform.position) > spawnObstructionRadius){
                         acceptablePoint = true;
@@ -477,7 +470,7 @@ public class BoidBad : MonoBehaviour
     }
 
     Vector3 randomVector(int lowerBound, int upperBound){
-        Vector3 vector = new Vector3(random.Next(lowerBound, upperBound), random.Next(lowerBound, upperBound), random.Next(lowerBound, upperBound));
+        Vector3 vector = new Vector3(StaticRandom.randomRange(lowerBound, upperBound), StaticRandom.randomRange(lowerBound, upperBound), StaticRandom.randomRange(lowerBound, upperBound));
         return vector;
     }
 }

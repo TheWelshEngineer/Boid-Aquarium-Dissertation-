@@ -1,0 +1,49 @@
+Basic Boid population: 16
+Bad Boid population: 2
+Spiky Boid population: 20
+Fast Boid population: 6
+Seaweed count: 26
+Dead boid count: 26
+
+Basic Boid population: 16
+Bad Boid population: 2
+Spiky Boid population: 20
+Fast Boid population: 6
+Seaweed count: 22
+Dead boid count: 24
+
+Basic Boid population: 16
+Bad Boid population: 2
+Spiky Boid population: 16
+Fast Boid population: 4
+Seaweed count: 24
+Dead boid count: 13
+
+Basic Boid population: 21
+Bad Boid population: 2
+Spiky Boid population: 21
+Fast Boid population: 4
+Seaweed count: 26
+Dead boid count: 12
+
+Basic Boid population: 54
+Bad Boid population: 2
+Spiky Boid population: 44
+Fast Boid population: 4
+Seaweed count: 22
+Dead boid count: 5
+
+Basic Boid population: 69
+Bad Boid population: 10
+Spiky Boid population: 47
+Fast Boid population: 18
+Seaweed count: 25
+Dead boid count: 7
+
+Basic Boid population: 77
+Bad Boid population: 10
+Spiky Boid population: 47
+Fast Boid population: 18
+Seaweed count: 2
+Dead boid count: 0
+

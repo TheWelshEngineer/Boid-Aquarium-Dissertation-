@@ -329,8 +329,8 @@ Transform:
   m_GameObject: {fileID: 198151214}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -15, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 30, z: 30}
+  m_LocalPosition: {x: -30, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 60, z: 60}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -438,8 +438,8 @@ Transform:
   m_GameObject: {fileID: 402315334}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 15, z: 0}
-  m_LocalScale: {x: 3, y: 1, z: 3}
+  m_LocalPosition: {x: 0, y: 30, z: 0}
+  m_LocalScale: {x: 6, y: 1, z: 6}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -546,8 +546,8 @@ Transform:
   m_GameObject: {fileID: 555618157}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 15}
-  m_LocalScale: {x: 30, y: 30, z: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 30}
+  m_LocalScale: {x: 60, y: 60, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -654,8 +654,8 @@ Transform:
   m_GameObject: {fileID: 639050041}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -15}
-  m_LocalScale: {x: 30, y: 30, z: 1}
+  m_LocalPosition: {x: 0, y: 0, z: -30}
+  m_LocalScale: {x: 60, y: 60, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -711,17 +711,21 @@ MonoBehaviour:
   seaweed: 0
   deadBoids: 0
   basicBoidPrefab: {fileID: 8865294533196376489, guid: c05073737e3e25d418eb672262be8d22, type: 3}
-  basicBoidStartingPopulation: 7
+  basicBoidStartingPopulation: 16
   badBoidPrefab: {fileID: 3433990271446044839, guid: e067e834253d7044d8d79af6e64ceb7e, type: 3}
-  badBoidStartingPopulation: 1
+  badBoidStartingPopulation: 2
   spikyBoidPrefab: {fileID: 4506221430324959447, guid: 19a54cc463f2f0040b357e542b66bbc2, type: 3}
-  spikyBoidStartingPopulation: 14
+  spikyBoidStartingPopulation: 20
   fastBoidPrefab: {fileID: 419048942463611121, guid: d25ca1a2e4ba91f49b601ebdd25e1d03, type: 3}
-  fastBoidStartingPopulation: 5
+  fastBoidStartingPopulation: 6
   deadBoidPrefab: {fileID: 6814059445269304629, guid: 166b518c2bd80794daae95e48f4e7fed, type: 3}
-  deadBoidStartingPopulation: 15
+  optimalDeadBoidCount: 26
+  deadBoidStartingPopulation: 26
   seaweedPrefab: {fileID: 7631136117991817211, guid: 2c9cf859ce86b1c4a95cfd1890336e8b, type: 3}
-  seaweedStartingPopulation: 13
+  optimalSeaweedCount: 26
+  seaweedStartingPopulation: 26
+  spawnBounds: 25
+  simulationSpeed: 1
 --- !u!1 &705507993
 GameObject:
   m_ObjectHideFlags: 0
@@ -904,13 +908,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 963194225}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.8268417, y: -0, z: -0, w: 0.5624348}
-  m_LocalPosition: {x: 7, y: 15.6, z: 14.7}
+  m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 0, y: 75, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 111.550995, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
 --- !u!1 &966108219
 GameObject:
   m_ObjectHideFlags: 0
@@ -1338,8 +1342,8 @@ Transform:
   m_GameObject: {fileID: 1154000380}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -15, z: 0}
-  m_LocalScale: {x: 3, y: 1, z: 3}
+  m_LocalPosition: {x: 0, y: -30, z: 0}
+  m_LocalScale: {x: 6, y: 1, z: 6}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -1554,8 +1558,8 @@ Transform:
   m_GameObject: {fileID: 1632712212}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 15, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 30, z: 30}
+  m_LocalPosition: {x: 30, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 60, z: 60}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
